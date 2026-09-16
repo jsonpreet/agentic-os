@@ -1,0 +1,10 @@
+node_modules
+dist
+build
+out
+.DS_Store
+*.log
+.agentic
+data/*.db
+data/*.db-journal
+data/*.db-wal
