@@ -2,7 +2,7 @@ export type UiThemePreference = 'system' | 'light' | 'dark';
 export type ResolvedUiTheme = 'light' | 'dark';
 
 const STORAGE_KEY = 'agentic-ui-theme';
-const DEFAULT_PREFERENCE: UiThemePreference = 'light';
+const DEFAULT_PREFERENCE: UiThemePreference = 'system';
 
 export function getUiThemePreference(): UiThemePreference {
   try {

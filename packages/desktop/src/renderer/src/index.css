@@ -464,7 +464,7 @@ body {
 
   .surface-hover:hover,
   .hover\:bg-surface-hover:hover {
-    background: var(--glass-hover);
+    background: var(--glass-hover) !important;
   }
 
   .ui-field-input {

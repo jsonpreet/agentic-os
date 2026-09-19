@@ -104,7 +104,7 @@ export const TopHUD: React.FC<TopHUDProps> = ({
                       className={`flex-1 flex items-center justify-between px-1.5 py-1 rounded-lg text-sm text-left transition ${
                         ws.id === activeWorkspace?.id
                           ? 'text-primary font-medium'
-                          : 'text-[var(--glass-text)] hover:bg-surface-hover'
+                          : 'text-[var(--glass-text)] hover:bg-[var(--glass-hover)]'
                       }`}
                     >
                       <span className="truncate">{ws.name}</span>
@@ -134,7 +134,7 @@ export const TopHUD: React.FC<TopHUDProps> = ({
                   setWorkspaceDropdownOpen(false);
                   onCreateWorkspace();
                 }}
-                className="w-full flex items-center space-x-2 px-2.5 py-1.5 rounded-lg text-sm text-[var(--glass-text)] hover:bg-surface-hover transition"
+                className="w-full flex items-center space-x-2 px-2.5 py-1.5 rounded-lg text-sm text-[var(--glass-text)] hover:bg-[var(--glass-hover)] transition"
               >
                 <Plus className="w-4 h-4 text-[var(--glass-text-muted)]" />
                 <span>New Workspace...</span>

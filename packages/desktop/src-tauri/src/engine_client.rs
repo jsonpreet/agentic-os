@@ -22,6 +22,82 @@ pub struct EngineClient {
     pending: Arc<Mutex<HashMap<String, oneshot::Sender<Result<Value, String>>>>>,
 }
 
+fn resolve_node_binary() -> PathBuf {
+    if let Ok(override_path) = std::env::var("AGENTIC_NODE_PATH") {
+        let p = PathBuf::from(override_path);
+        if p.exists() {
+            return p;
+        }
+    }
+
+    let mut candidates = Vec::new();
+    if let Ok(home) = std::env::var("HOME") {
+        let home = PathBuf::from(home);
+        candidates.push(home.join(".local/bin/node"));
+        candidates.push(home.join(".nvm/current/bin/node"));
+        candidates.push(home.join(".volta/bin/node"));
+        candidates.push(home.join(".asdf/shims/node"));
+        candidates.push(home.join(".fnm/current/bin/node"));
+        candidates.push(home.join("Library/pnpm/node"));
+    }
+    candidates.push(PathBuf::from("/opt/homebrew/bin/node"));
+    candidates.push(PathBuf::from("/usr/local/bin/node"));
+    candidates.push(PathBuf::from("/usr/bin/node"));
+
+    for candidate in candidates {
+        if candidate.exists() {
+            return candidate;
+        }
+    }
+
+    PathBuf::from("node")
+}
+
+fn build_enriched_path() -> String {
+    let current_path = std::env::var("PATH").unwrap_or_default();
+    let mut extra_paths = Vec::new();
+
+    if let Ok(home) = std::env::var("HOME") {
+        let h = PathBuf::from(&home);
+        let user_dirs = [
+            h.join(".local/bin"),
+            h.join(".nvm/current/bin"),
+            h.join(".volta/bin"),
+            h.join(".asdf/shims"),
+            h.join(".fnm/current/bin"),
+            h.join("Library/pnpm"),
+            h.join(".cargo/bin"),
+        ];
+        for d in user_dirs {
+            if d.exists() {
+                extra_paths.push(d.to_string_lossy().to_string());
+            }
+        }
+    }
+
+    let system_dirs = [
+        "/opt/homebrew/bin",
+        "/opt/homebrew/sbin",
+        "/usr/local/bin",
+        "/usr/local/sbin",
+        "/usr/bin",
+        "/bin",
+        "/usr/sbin",
+        "/sbin",
+    ];
+    for d in system_dirs {
+        if Path::new(d).exists() {
+            extra_paths.push(d.to_string());
+        }
+    }
+
+    if current_path.is_empty() {
+        extra_paths.join(":")
+    } else {
+        format!("{}:{}", extra_paths.join(":"), current_path)
+    }
+}
+
 impl EngineProcess {
     pub async fn spawn(
         app: AppHandle,
@@ -41,15 +117,19 @@ impl EngineProcess {
             std::fs::remove_file(&socket_path).map_err(|e| e.to_string())?;
         }
 
-        let mut child = Command::new("node")
-            .current_dir(engine_root)
+        let node_bin = resolve_node_binary();
+        let enriched_path = build_enriched_path();
+
+        let mut child = Command::new(&node_bin)
+            .current_dir(&engine_root)
             .arg(&bridge_script)
+            .env("PATH", enriched_path)
             .env("AGENTIC_ENGINE_SOCKET", socket_path.as_os_str())
             .stdout(std::process::Stdio::piped())
             .stderr(std::process::Stdio::piped())
             .kill_on_drop(true)
             .spawn()
-            .map_err(|e| format!("Failed to spawn engine bridge: {e}"))?;
+            .map_err(|e| format!("Failed to spawn engine bridge using '{}': {e}", node_bin.display()))?;
 
         let stdout = child
             .stdout
@@ -62,21 +142,26 @@ impl EngineProcess {
         let ready_deadline = sleep(Duration::from_secs(30));
         tokio::pin!(ready_deadline);
 
-        tokio::select! {
-            _ = &mut ready_deadline => {
-                return Err(read_child_diagnostics(&mut child, stderr, "Engine bridge timed out waiting for ready signal").await);
-            }
-            line = stdout_reader.read_line(&mut ready_line) => {
-                match line {
-                    Ok(0) => {
-                        return Err(read_child_diagnostics(&mut child, stderr, "Engine bridge exited before ready signal").await);
-                    }
-                    Ok(_) => {
-                        if !ready_line.starts_with("ready:") {
-                            return Err(format!("Unexpected engine bridge output: {}", ready_line.trim()));
+        loop {
+            ready_line.clear();
+            tokio::select! {
+                _ = &mut ready_deadline => {
+                    return Err(read_child_diagnostics(&mut child, stderr, "Engine bridge timed out waiting for ready signal").await);
+                }
+                res = stdout_reader.read_line(&mut ready_line) => {
+                    match res {
+                        Ok(0) => {
+                            return Err(read_child_diagnostics(&mut child, stderr, "Engine bridge exited before ready signal").await);
                         }
+                        Ok(_) => {
+                            let trimmed = ready_line.trim();
+                            if trimmed.starts_with("ready:") {
+                                break;
+                            }
+                            // Ignore other informational lines (e.g. http-ready:... or notices)
+                        }
+                        Err(error) => return Err(format!("Failed to read engine bridge output: {error}")),
                     }
-                    Err(error) => return Err(format!("Failed to read engine bridge output: {error}")),
                 }
             }
         }

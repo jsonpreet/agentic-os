@@ -82,7 +82,7 @@ export const TargetPickerModal: React.FC<TargetPickerModalProps> = ({
                     className={`w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-left transition ${
                       isSuggested
                         ? 'bg-primary/15 text-primary border border-primary/20'
-                        : 'text-[var(--glass-text)] hover:bg-surface-hover'
+                        : 'text-[var(--glass-text)] hover:bg-[var(--glass-hover)]'
                     }`}
                   >
                     <span className="text-sm font-medium">{agent.name}</span>
@@ -101,7 +101,7 @@ export const TargetPickerModal: React.FC<TargetPickerModalProps> = ({
 
           <button
             onClick={() => onSpawnNew(draftPrompt)}
-            className="w-full flex items-center space-x-2 px-2.5 py-2 rounded-xl text-[var(--glass-text)] hover:bg-surface-hover transition text-left"
+            className="w-full flex items-center space-x-2 px-2.5 py-2 rounded-xl text-[var(--glass-text)] hover:bg-[var(--glass-hover)] transition text-left"
           >
             <Plus className="w-4 h-4 text-emerald-400" />
             <span className="text-sm">Create new agent with this instruction</span>

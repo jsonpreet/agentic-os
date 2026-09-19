@@ -23,7 +23,8 @@ import {
   Send,
   Database,
   Palette,
-  Activity
+  Activity,
+  Loader2
 } from 'lucide-react';
 import { getSpeechSettings } from '../../lib/speech/settings.js';
 import { startApiSTT } from '../../lib/speech/api-stt.js';
@@ -272,7 +273,10 @@ export const FloatingDock: React.FC<FloatingDockProps> = ({
           {workspaceOpen && (
             <div className="absolute bottom-full right-0 mb-2 w-52 rounded-xl glass-popover p-1.5 z-50 shadow-2xl">
               {engineLoading ? (
-                <p className="px-2.5 py-2 text-xs text-[var(--glass-text-muted)]">Loading workspaces…</p>
+                <div className="flex items-center gap-2 px-2.5 py-2 text-xs text-[var(--glass-text)] font-medium">
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-[var(--cnvs-accent)]" />
+                  <span>Loading workspaces…</span>
+                </div>
               ) : !engineConnected ? (
                 <p className="px-2.5 py-2 text-xs text-red-300">
                   Engine not connected yet.

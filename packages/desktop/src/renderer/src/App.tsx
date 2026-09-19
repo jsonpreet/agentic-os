@@ -18,6 +18,7 @@ import { SettingsModal } from './components/modals/SettingsModal.js';
 import { NewWorkspaceModal } from './components/modals/NewWorkspaceModal.js';
 import { CommandPalette } from './components/modals/CommandPalette.js';
 import { TargetPickerModal } from './components/modals/TargetPickerModal.js';
+import { Loader2, AlertCircle, FolderPlus, RefreshCw } from 'lucide-react';
 import { WallpaperLayer } from './components/desktop/WallpaperLayer.js';
 import { DesktopContextMenu } from './components/desktop/DesktopContextMenu.js';
 import { EngineStatusBanner } from './components/desktop/EngineStatusBanner.js';
@@ -100,6 +101,13 @@ export const App: React.FC = () => {
   const [engineConnected, setEngineConnected] = useState(true);
   const [engineLoading, setEngineLoading] = useState(true);
   const [engineError, setEngineError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
+
+  const handleRetryConnection = useCallback(() => {
+    setEngineError(null);
+    setEngineLoading(true);
+    setRetryCount((prev) => prev + 1);
+  }, []);
   const [activeWindow, setActiveWindow] = useState<ActiveWindowInfo>({
     id: 'desktop',
     kind: 'desktop',
@@ -224,7 +232,7 @@ export const App: React.FC = () => {
       unsubStatus();
       unsubQueue();
     };
-  }, []);
+  }, [retryCount]);
 
   // When active workspace changes, bootstrap desktops and load sessions
   useEffect(() => {
@@ -1126,8 +1134,90 @@ export const App: React.FC = () => {
           />
           </>
         ) : engineLoading ? (
-          <div className="w-full h-full flex items-center justify-center">
-            <p className="text-sm text-[var(--glass-text-muted)]">Loading workspace…</p>
+          <div className="w-full h-full flex items-center justify-center p-6 select-none">
+            <div className="flex flex-col items-center justify-center max-w-sm w-full px-8 py-8 rounded-2xl glass-surface border border-[var(--glass-border)] shadow-2xl backdrop-blur-2xl text-center space-y-4 animate-in fade-in zoom-in-95 duration-200">
+              <div className="relative flex items-center justify-center">
+                {/* Glowing ambient pulse behind spinner */}
+                <div className="absolute w-14 h-14 rounded-full bg-[var(--cnvs-accent)] opacity-25 blur-xl animate-pulse" />
+                <Loader2 className="w-9 h-9 animate-spin text-[var(--cnvs-accent)] relative z-10" />
+              </div>
+
+              <div className="space-y-1.5">
+                <h3 className="text-base font-semibold text-[var(--glass-text)] tracking-tight">
+                  Loading Workspace
+                </h3>
+                <p className="text-xs text-[var(--glass-text-muted)] leading-relaxed">
+                  Connecting to engine and initializing desktops…
+                </p>
+              </div>
+
+              {engineError ? (
+                <div className="w-full mt-2 p-3 rounded-xl bg-red-500/10 border border-red-500/25 text-left space-y-2">
+                  <div className="flex items-start gap-2">
+                    <AlertCircle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+                    <div className="space-y-0.5 overflow-hidden">
+                      <p className="text-xs font-semibold text-red-400">Connection Delay</p>
+                      <p className="text-[11px] text-red-300/85 break-words font-mono line-clamp-3">
+                        {engineError}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex justify-end pt-1">
+                    <button
+                      type="button"
+                      onClick={handleRetryConnection}
+                      className="px-3 py-1 rounded-lg text-xs font-medium bg-red-500/20 hover:bg-red-500/30 text-red-200 transition flex items-center gap-1.5"
+                    >
+                      <RefreshCw className="w-3 h-3" />
+                      Retry
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1.5 text-[11px] text-[var(--glass-text-muted)]">
+                  <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
+                  <span>Restoring session state…</span>
+                </div>
+              )}
+            </div>
+          </div>
+        ) : !resolvedDesktopId ? (
+          <div className="w-full h-full flex items-center justify-center p-6 select-none">
+            <div className="flex flex-col items-center justify-center max-w-sm w-full px-8 py-8 rounded-2xl glass-surface border border-[var(--glass-border)] shadow-2xl backdrop-blur-2xl text-center space-y-4 animate-in fade-in zoom-in-95 duration-200">
+              <div className="w-14 h-14 rounded-2xl bg-[var(--glass-selected)] border border-[var(--glass-border)] flex items-center justify-center text-[var(--glass-text)] shadow-inner">
+                <FolderPlus className="w-7 h-7 text-[var(--cnvs-accent)]" />
+              </div>
+              <div className="space-y-1.5">
+                <h3 className="text-base font-semibold text-[var(--glass-text)] tracking-tight">
+                  No Active Workspace
+                </h3>
+                <p className="text-xs text-[var(--glass-text-muted)] leading-relaxed">
+                  {engineConnected
+                    ? 'Create or select a workspace to open your virtual desktop.'
+                    : 'The local engine is not connected.'}
+                </p>
+              </div>
+
+              {engineConnected ? (
+                <button
+                  type="button"
+                  onClick={() => setIsNewWorkspaceOpen(true)}
+                  className="px-5 py-2 rounded-xl text-xs font-semibold bg-[var(--cnvs-accent)] text-stone-950 hover:opacity-90 shadow-lg shadow-amber-500/20 transition flex items-center gap-1.5"
+                >
+                  <FolderPlus className="w-4 h-4" />
+                  Create Workspace
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleRetryConnection}
+                  className="px-4 py-2 rounded-xl text-xs font-medium glass-button text-[var(--glass-text)] hover:bg-[var(--glass-hover)] transition flex items-center gap-1.5"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  Retry Connection
+                </button>
+              )}
+            </div>
           </div>
         ) : null}
       </main>

@@ -16,8 +16,26 @@ struct AppState {
     engine_error: Arc<Mutex<Option<String>>>,
 }
 
-fn resolve_engine_root() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../local-engine")
+fn resolve_engine_root(app: &tauri::AppHandle) -> PathBuf {
+    let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    let dev_candidates = [
+        manifest_dir.join("../../local-engine"),
+        manifest_dir.join("../../../local-engine"),
+    ];
+
+    for candidate in dev_candidates {
+        if candidate.exists() {
+            return candidate;
+        }
+    }
+
+    if let Ok(resource) = app.path().resolve("engine", tauri::path::BaseDirectory::Resource) {
+        if resource.exists() {
+            return resource;
+        }
+    }
+
+    manifest_dir.join("../../local-engine")
 }
 
 fn resolve_bridge_script(app: &tauri::AppHandle) -> Result<PathBuf, String> {
@@ -127,7 +145,7 @@ pub fn run() {
             });
 
             let bridge_script = resolve_bridge_script(app.handle())?;
-            let engine_root = resolve_engine_root();
+            let engine_root = resolve_engine_root(app.handle());
             let handle = app.handle().clone();
 
             tauri::async_runtime::spawn(async move {
