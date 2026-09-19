@@ -1,10 +1,8 @@
 name: CI
 
+# Automatic build triggers disabled. Trigger manually via GitHub Actions UI if needed.
 on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

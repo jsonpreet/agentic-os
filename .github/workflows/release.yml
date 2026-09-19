@@ -1,9 +1,8 @@
 name: Release
 
+# Automatic build triggers disabled. Trigger manually via GitHub Actions UI if needed.
 on:
-  push:
-    tags:
-      - 'v*'
+  workflow_dispatch:
 
 permissions:
   contents: write
