@@ -1,0 +1,43 @@
+# Multi-stage Dockerfile for Agentic WebSocket Relay Server
+FROM node:22-alpine AS builder
+
+WORKDIR /app
+
+# Enable corepack for pnpm
+RUN corepack enable && corepack prepare pnpm@10.29.2 --activate
+
+# Copy workspace package manifests
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY packages/shared-contracts/package.json ./packages/shared-contracts/
+COPY packages/local-engine/package.json ./packages/local-engine/
+
+# Install build dependencies (node-gyp, python, make, g++) for native modules like better-sqlite3 / node-pty if needed
+RUN apk add --no-cache python3 make g++
+
+# Install all monorepo dependencies
+RUN pnpm install --frozen-lockfile
+
+# Copy source files
+COPY packages/shared-contracts ./packages/shared-contracts
+COPY packages/local-engine ./packages/local-engine
+
+# Build TypeScript
+RUN pnpm --filter @agentic/shared-contracts build
+RUN pnpm --filter @agentic/local-engine build
+
+# Production runner image
+FROM node:22-alpine AS runner
+
+WORKDIR /app
+
+ENV NODE_ENV=production
+ENV AGENTIC_RELAY_PORT=3848
+
+COPY --from=builder /app /app
+
+EXPOSE 3848
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+  CMD node -e "const ws = new (require('ws'))('ws://localhost:' + (process.env.AGENTIC_RELAY_PORT || 3848)); ws.on('open', () => { ws.close(); process.exit(0); }); ws.on('error', () => process.exit(1));"
+
+CMD ["node", "packages/local-engine/dist/relay/start-relay.js"]

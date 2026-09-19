@@ -155,6 +155,7 @@ const handlers: Record<string, (params: any) => Promise<unknown>> = {
   requestPairing: (params) => Promise.resolve(engine.requestPairing(params)),
   approvePairing: (params) => Promise.resolve(engine.approvePairing(params)),
   revokePairedDevice: (params) => Promise.resolve(engine.revokePairedDevice(params)),
+  handleStripeWebhook: (params) => Promise.resolve(engine.handleStripeWebhook(params.payload ?? params)),
   listNotifications: (params) => Promise.resolve(engine.listNotifications(params ?? {})),
   getUnreadNotificationCount: () => Promise.resolve(engine.getUnreadNotificationCount()),
   markNotificationRead: (params) => Promise.resolve(engine.markNotificationRead(params)),
@@ -303,6 +304,20 @@ function startHttpServer(port: number): http.Server {
       } catch {
         res.writeHead(400, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: 'Invalid request' }));
+      }
+      return;
+    }
+
+    if (route === '/api/webhooks/stripe' && req.method === 'POST') {
+      try {
+        const body = await readHttpBody(req);
+        const payload = JSON.parse(body);
+        const result = engine.handleStripeWebhook(payload);
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify(result));
+      } catch (err: any) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: err?.message || 'Invalid webhook payload' }));
       }
       return;
     }

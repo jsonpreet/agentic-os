@@ -1,0 +1,13 @@
+services:
+  agentic-relay:
+    build:
+      context: .
+      dockerfile: packages/local-engine/Dockerfile.relay
+    image: agentic-os/relay:latest
+    container_name: agentic-relay-server
+    restart: unless-stopped
+    ports:
+      - "3848:3848"
+    environment:
+      - AGENTIC_RELAY_PORT=3848
+      - NODE_ENV=production

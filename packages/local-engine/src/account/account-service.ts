@@ -110,6 +110,35 @@ export class AccountService {
     return this.getAccountStatus(currentDeviceId);
   }
 
+  updateEntitlement(
+    plan: SubscriptionPlan,
+    expiresAt: number,
+    leaseDurationMs = OFFLINE_LEASE_MS
+  ): SubscriptionEntitlement {
+    const limits = PLAN_LIMITS[plan] ?? PLAN_LIMITS.free;
+    const entitlement: SubscriptionEntitlement = {
+      plan,
+      deviceLimit: limits.deviceLimit,
+      expiresAt,
+      offlineLeaseUntil: Math.min(expiresAt, Date.now() + leaseDurationMs),
+      cloudSnapshots: plan !== 'free',
+      relayAccess: limits.relayAccess
+    };
+    this.db.saveSubscriptionEntitlement(entitlement);
+    return entitlement;
+  }
+
+  extendOfflineLease(leaseDurationMs = OFFLINE_LEASE_MS): SubscriptionEntitlement | null {
+    const existing = this.db.getSubscriptionEntitlement();
+    if (!existing) return null;
+    const updated: SubscriptionEntitlement = {
+      ...existing,
+      offlineLeaseUntil: Math.min(existing.expiresAt, Date.now() + leaseDurationMs)
+    };
+    this.db.saveSubscriptionEntitlement(updated);
+    return updated;
+  }
+
   registerTrustedDevice(device: {
     deviceId: string;
     deviceName: string;

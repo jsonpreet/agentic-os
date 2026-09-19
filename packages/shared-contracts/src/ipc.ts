@@ -50,7 +50,9 @@ import {
   RequestPairingParams,
   ApprovePairingParams,
   RevokeDeviceParams,
-  PairingCode
+  PairingCode,
+  StripeWebhookPayload,
+  StripeWebhookResult
 } from './account.js';
 import {
   AgenticNotification,
@@ -268,6 +270,7 @@ export interface AgenticApi {
   requestPairing(params: RequestPairingParams): Promise<PairingCode>;
   approvePairing(params: ApprovePairingParams): Promise<AccountStatus>;
   revokePairedDevice(params: RevokeDeviceParams): Promise<AccountStatus>;
+  handleStripeWebhook(payload: StripeWebhookPayload): Promise<StripeWebhookResult>;
 
   // Notifications and usage
   listNotifications(params?: ListNotificationsParams): Promise<AgenticNotification[]>;

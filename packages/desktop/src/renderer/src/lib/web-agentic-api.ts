@@ -51,6 +51,8 @@ import {
   ApprovePairingParams,
   RevokeDeviceParams,
   PairingCode,
+  StripeWebhookPayload,
+  StripeWebhookResult,
   AgenticNotification,
   ListNotificationsParams,
   MarkNotificationReadParams,
@@ -293,6 +295,8 @@ export const webAgenticApi: AgenticApi = {
   approvePairing: (params: ApprovePairingParams) => call<AccountStatus>('approvePairing', params),
   revokePairedDevice: (params: RevokeDeviceParams) =>
     call<AccountStatus>('revokePairedDevice', params),
+  handleStripeWebhook: (payload: StripeWebhookPayload) =>
+    call<StripeWebhookResult>('handleStripeWebhook', { payload }),
   listNotifications: (params?: ListNotificationsParams) =>
     call<AgenticNotification[]>('listNotifications', params ?? {}),
   getUnreadNotificationCount: () => call<number>('getUnreadNotificationCount'),

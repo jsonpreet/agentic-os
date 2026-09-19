@@ -61,3 +61,20 @@ export interface ApprovePairingParams {
 export interface RevokeDeviceParams {
   deviceId: string;
 }
+
+export interface StripeWebhookPayload {
+  id: string;
+  type: string;
+  data: {
+    object: Record<string, any>;
+  };
+}
+
+export interface StripeWebhookResult {
+  handled: boolean;
+  event: string;
+  plan?: SubscriptionPlan;
+  accountId?: string;
+  expiresAt?: number;
+  message: string;
+}

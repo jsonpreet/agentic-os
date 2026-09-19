@@ -76,8 +76,11 @@ import {
   DesignOverview,
   ActivityEvent,
   CreateActivityEventParams,
-  ActivityEventQuery
+  ActivityEventQuery,
+  StripeWebhookPayload,
+  StripeWebhookResult
 } from '@agentic/shared-contracts';
+import { processStripeWebhook } from '../account/stripe-webhook.js';
 import * as speechService from './speech-service.js';
 import * as speechModels from './speech-models.js';
 import { BrowserToolService } from './browser-tool-service.js';
@@ -886,6 +889,16 @@ export class LocalEngine extends EventEmitter {
   revokePairedDevice(params: RevokeDeviceParams): AccountStatus {
     const device = this.syncService.ensureDeviceIdentity();
     return this.accountService.revokeDevice(params, device.deviceId);
+  }
+
+  handleStripeWebhook(payload: StripeWebhookPayload): StripeWebhookResult {
+    const result = processStripeWebhook(payload, this.accountService, this.db);
+    this.activityService.logSystem(
+      'stripe_webhook',
+      `Processed Stripe event ${payload.type}: ${result.message}`,
+      { eventId: payload.id, type: payload.type, plan: result.plan, handled: result.handled }
+    );
+    return result;
   }
 
   listNotifications(params: ListNotificationsParams = {}): AgenticNotification[] {

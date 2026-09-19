@@ -230,6 +230,12 @@ export class EngineDatabase {
         approved INTEGER NOT NULL DEFAULT 0
       );
 
+      CREATE TABLE IF NOT EXISTS processed_stripe_events (
+        id TEXT PRIMARY KEY,
+        event_type TEXT NOT NULL,
+        processed_at INTEGER NOT NULL
+      );
+
       CREATE TABLE IF NOT EXISTS notifications (
         id TEXT PRIMARY KEY,
         type TEXT NOT NULL,
@@ -936,6 +942,22 @@ export class EngineDatabase {
 
   clearSubscriptionEntitlement(): void {
     this.db.prepare(`DELETE FROM subscription_entitlement`).run();
+  }
+
+  isStripeEventProcessed(id: string): boolean {
+    const row = this.db.prepare(`SELECT id FROM processed_stripe_events WHERE id = ?`).get(id);
+    return Boolean(row);
+  }
+
+  recordStripeEvent(id: string, eventType: string): boolean {
+    try {
+      this.db
+        .prepare(`INSERT INTO processed_stripe_events (id, event_type, processed_at) VALUES (?, ?, ?)`)
+        .run(id, eventType, Date.now());
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   listPairedDevices(): PairedDevice[] {
