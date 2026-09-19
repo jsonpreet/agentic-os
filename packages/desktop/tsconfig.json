@@ -6,8 +6,6 @@
     "noEmit": true
   },
   "include": [
-    "src/renderer/src/**/*",
-    "src/main/**/*",
-    "src/preload/**/*"
+    "src/renderer/src/**/*"
   ]
 }

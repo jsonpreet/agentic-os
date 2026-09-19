@@ -48,4 +48,28 @@ export class InstructionQueueManager extends EventEmitter {
     }
     return success;
   }
+
+  cancelById(instructionId: string): boolean {
+    const instruction = this.db.getInstructionById(instructionId);
+    if (!instruction || instruction.status !== 'queued') return false;
+    return this.cancel(instructionId, instruction.sessionId);
+  }
+
+  edit(instructionId: string, newPrompt: string): AgentInstruction | null {
+    const instruction = this.db.getInstructionById(instructionId);
+    if (!instruction || instruction.status !== 'queued') return null;
+
+    const trimmed = newPrompt.trim();
+    if (!trimmed) return null;
+
+    const success = this.db.updateInstructionPrompt(instructionId, trimmed);
+    if (!success) return null;
+
+    const updated = this.db.getInstructionById(instructionId);
+    if (!updated) return null;
+
+    const queue = this.db.getQueue(instruction.sessionId);
+    this.emit('queue_updated', { sessionId: instruction.sessionId, queue });
+    return updated;
+  }
 }

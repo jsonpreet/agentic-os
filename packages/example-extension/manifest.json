@@ -1,0 +1,9 @@
+{
+  "id": "com.agentic.hello-widget",
+  "name": "Hello Widget",
+  "version": "0.1.0",
+  "sdkVersion": "0.1.0",
+  "description": "Example Agentic extension demonstrating widget entrypoints and permissions.",
+  "widgetEntrypoint": "widget.html",
+  "permissions": ["storage", "notifications", "launch_agent_task"]
+}

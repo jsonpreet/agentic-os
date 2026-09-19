@@ -1,56 +1,49 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
-import electron from 'vite-plugin-electron';
-import renderer from 'vite-plugin-electron-renderer';
 import path from 'node:path';
+import { agenticEnginePlugin } from './vite-engine-plugin.js';
 
-export default defineConfig({
-  plugins: [
-    react(),
-    electron([
-      {
-        entry: path.join(__dirname, 'src/main/index.ts'),
-        vite: {
-          build: {
-            outDir: 'dist-electron/main',
-            sourcemap: true,
-            minify: false,
-            rollupOptions: {
-              external: [
-                'better-sqlite3',
-                'node-pty',
-                'execa',
-                'electron'
-              ]
-            }
-          }
-        }
-      },
-      {
-        entry: path.join(__dirname, 'src/preload/index.ts'),
-        onstart(args) {
-          args.reload();
-        },
-        vite: {
-          build: {
-            outDir: 'dist-electron/preload',
-            sourcemap: true,
-            minify: false,
-            rollupOptions: {
-              external: ['electron']
-            }
-          }
-        }
-      }
-    ]),
-    renderer()
-  ],
+const host = process.env.TAURI_DEV_HOST;
+/** Only set by `pnpm dev:web` — never during `tauri dev`. */
+const isWebDev = process.env.AGENTIC_WEB_DEV === '1';
+
+export default defineConfig(({ command }) => ({
+  plugins: [react(), ...(command === 'serve' && isWebDev ? [agenticEnginePlugin()] : [])],
+  clearScreen: false,
   resolve: {
     alias: {
       '@': path.resolve(__dirname, 'src/renderer/src')
     }
   },
   server: {
-    port: 5173
+    port: 5173,
+    strictPort: true,
+    host: host || false,
+    hmr: host
+      ? {
+          protocol: 'ws',
+          host,
+          port: 1421
+        }
+      : undefined,
+    watch: {
+      ignored: ['**/src-tauri/**']
+    },
+    proxy:
+      command === 'serve' && isWebDev
+        ? {
+            '/agentic': {
+              target: 'http://127.0.0.1:3847',
+              changeOrigin: true,
+              rewrite: (requestPath) => requestPath.replace(/^\/agentic/, '')
+            }
+          }
+        : undefined
+  },
+  envPrefix: ['VITE_', 'TAURI_'],
+  build: {
+    target: process.env.TAURI_ENV_PLATFORM === 'windows' ? 'chrome105' : 'safari13',
+    minify: !process.env.TAURI_ENV_DEBUG ? 'esbuild' : false,
+    sourcemap: !!process.env.TAURI_ENV_DEBUG
   }
-});
+}));

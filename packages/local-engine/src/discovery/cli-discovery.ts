@@ -71,7 +71,7 @@ const SUPPORTED_CLIS: SupportedCLIDefinition[] = [
 export class CLIDiscoveryService {
   private cache: DiscoveredCLI[] | null = null;
 
-  async scan(): Promise<DiscoveredCLI[]> {
+  async scan(manualPaths: Partial<Record<AgentProvider, string>> = {}): Promise<DiscoveredCLI[]> {
     const searchPaths = await getSearchPaths();
     const env = await getShellEnvironment();
     const results: DiscoveredCLI[] = [];
@@ -80,8 +80,16 @@ export class CLIDiscoveryService {
       let executablePath: string | null = null;
       let version: string | null = null;
       let isAvailable = false;
+      let isManual = false;
+
+      const manualPath = manualPaths[def.provider];
+      if (manualPath && fs.existsSync(manualPath)) {
+        executablePath = manualPath;
+        isManual = true;
+      }
 
       // Check candidate search paths for executable binary
+      if (!executablePath) {
       for (const dir of searchPaths) {
         const candidate = path.join(dir, def.command);
         try {
@@ -95,6 +103,7 @@ export class CLIDiscoveryService {
         } catch {
           // ignore permission errors for specific directories
         }
+      }
       }
 
       if (executablePath) {
@@ -119,6 +128,7 @@ export class CLIDiscoveryService {
         executablePath,
         version,
         isAvailable,
+        isManual,
         capabilities: def.capabilities
       });
     }
@@ -129,5 +139,9 @@ export class CLIDiscoveryService {
 
   getCached(): DiscoveredCLI[] | null {
     return this.cache;
+  }
+
+  setCache(results: DiscoveredCLI[]): void {
+    this.cache = results;
   }
 }

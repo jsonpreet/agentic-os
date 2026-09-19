@@ -14,5 +14,6 @@ export interface DiscoveredCLI {
   executablePath: string | null;
   version: string | null;
   isAvailable: boolean;
+  isManual?: boolean;
   capabilities: CLICapabilities;
 }

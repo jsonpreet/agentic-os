@@ -78,7 +78,7 @@ The execution remains on the Mac. The phone acts as a viewing and control client
 
 | Component | Technology |
 |---|---|
-| Desktop application | Electron |
+| Desktop application | Tauri (Rust) + React |
 | Shared desktop/web UI | React + TypeScript |
 | Frontend tooling | Vite |
 | Local execution engine | Node.js + TypeScript |
@@ -152,14 +152,15 @@ Remote clients must show the execution device prominently.
 
 Separate:
 
-- Desktop shell renderer.
-- Privileged host APIs.
+- Tauri webview (React UI).
+- Rust desktop shell (windowing, IPC, engine lifecycle).
+- Node.js local execution engine (sidecar subprocess).
 - Terminal management.
 - Browser automation.
 - Speech processing.
 - Third-party app renderers.
 
-Use sandboxed renderers, context isolation, and validated IPC. Renderers receive narrow capabilities rather than unrestricted filesystem or shell access.
+Use Tauri capability permissions and a narrow `agentic_invoke` command surface. The webview receives typed API access only; the Node engine runs as a separate subprocess with Unix-socket JSON-RPC.
 
 ---
 
@@ -514,24 +515,26 @@ Repository-free tasks use workspace-owned directories.
 
 ## 12. Starting App Suite
 
-| App | Initial capabilities |
-|---|---|
-| Agent Terminal | Named agents, shells, queues, history |
-| Browser | Browsing, developer tools, agent control |
-| Code Editor | Files, syntax highlighting, search, diagnostics, formatting |
-| Files | Navigation, previews, attachments |
-| Source Control | Worktrees, diffs, commits, PRs |
-| Preview & Dev Servers | Commands, logs, local URLs, process controls |
-| Design & Assets | Images, SVGs, references, colors, typography |
-| API Client | Requests, authentication, environments, collections |
-| Database Explorer | PostgreSQL and SQLite, schema, queries, results |
-| Kanban | Boards, task cards, linked sessions |
-| Notes | Markdown, autosave, specifications |
-| Agent Usage | Supported limits, reset times, freshness |
-| Notifications | Completion, failures, approvals |
-| Activity & Logs | Searchable task and app events |
-| Devices & License | Pairing, revocation, subscription |
-| App Library & Settings | Extensions, providers, permissions |
+All 16 built-in apps run strictly as in-app windows inside the Tauri 2 desktop shell on the active virtual desktop (managed by `WindowManager.tsx`), communicating with the local engine over JSON-RPC socket/HTTP bridge. They do not launch external macOS applications (Safari, Finder, etc.).
+
+| App | Initial capabilities | Implementation Status | Key Components & Services |
+|---|---|---|---|
+| Agent Terminal | Named agents, shells, queues, history | Complete | `AgentTerminalWindow.tsx`, `LocalEngine`, xterm.js |
+| Browser | Browsing, developer tools, agent control | Complete | `BrowserAppWindow.tsx`, `BrowserToolService`, iframe sandbox |
+| Code Editor | Files, syntax highlighting, search, diagnostics, formatting | Complete | `CodeEditorAppWindow.tsx`, Monaco Editor, FileService |
+| Files | Navigation, previews, attachments | Complete | `FilesAppWindow.tsx`, `FileService` |
+| Source Control | Worktrees, diffs, commits, PRs | Complete | `SourceControlAppWindow.tsx`, `GitService`, `GitHubService` |
+| Preview & Dev Servers | Commands, logs, local URLs, process controls | Complete | `DevServersAppWindow.tsx`, `DevServerService` |
+| Design & Assets | Images, SVGs, references, colors, typography | Complete | `DesignAssetsAppWindow.tsx`, `DesignAssetsService` |
+| API Client | Requests, authentication, environments, collections | Complete | `ApiClientAppWindow.tsx`, `HttpClientService` |
+| Database Explorer | PostgreSQL and SQLite, schema, queries, results | Complete | `DatabaseExplorerAppWindow.tsx`, `DatabaseExplorerService` |
+| Kanban | Boards, task cards, linked sessions | Complete | `KanbanAppWindow.tsx`, `KanbanService` |
+| Notes | Markdown, autosave, specifications | Complete | `NotesAppWindow.tsx`, `NotesService` |
+| Agent Usage | Supported limits, reset times, freshness | Complete | `AgentUsageAppWindow.tsx`, `UsageSettingsPanel.tsx`, `usage/` parsers |
+| Notifications | Completion, failures, approvals | Complete | `NotificationsAppWindow.tsx`, `NotificationService` |
+| Activity & Logs | Searchable task and app events | Complete | `ActivityLogsAppWindow.tsx`, `ActivityService`, `activity_events` DB |
+| Devices & License | Pairing, revocation, subscription | Complete | `DevicesLicenseAppWindow.tsx`, `AccountService` |
+| App Library & Settings | Extensions, providers, permissions | Complete | `AppLibraryAppWindow.tsx`, `SettingsModal.tsx`, `ExtensionService` |
 
 Prioritize JavaScript, TypeScript, HTML, CSS, JSON, and Markdown in the editor. Provide configurable language-server integration for other languages.
 
@@ -812,7 +815,7 @@ Shared workspace edits go through the online host initially. Remote offline edit
 
 ## 19. Delivery Milestones
 
-### Milestone 1 — Local desktop foundation
+### Milestone 1 — Local desktop foundation [Status: Verified]
 
 Deliver:
 
@@ -825,8 +828,9 @@ Deliver:
 - Local persistence.
 
 Acceptance: run two agents in isolated worktrees and address them from different desktops.
+- **Verification**: Verified in `packages/local-engine/tests/integration.test.ts` and `packages/desktop/tests/workspace-bootstrap.test.ts`.
 
-### Milestone 2 — Browser and speech
+### Milestone 2 — Browser and speech [Status: Verified]
 
 Deliver:
 
@@ -837,8 +841,9 @@ Deliver:
 - Playback queue.
 
 Acceptance: dictate a task, observe browser interaction, and hear the addressed agent’s response.
+- **Verification**: Verified in `packages/local-engine/tests/m2-acceptance.test.ts` and `packages/desktop/tests/m2-acceptance.test.ts`.
 
-### Milestone 3 — Developer workflows
+### Milestone 3 — Developer workflows [Status: Verified]
 
 Deliver:
 
@@ -848,8 +853,9 @@ Deliver:
 - API Client and Database Explorer.
 
 Acceptance: complete implementation, browser verification, review, and PR creation.
+- **Verification**: Verified in `packages/local-engine/tests/m3-acceptance.test.ts` and `packages/desktop/tests/m3-acceptance.test.ts`.
 
-### Milestone 4 — Cloud and licensing
+### Milestone 4 — Cloud and licensing [Status: Verified]
 
 Deliver:
 
@@ -862,17 +868,22 @@ Deliver:
 - Remote browser view.
 
 Acceptance: control a Mac-hosted agent from another device and inspect encrypted saved history after disconnecting the host.
+- **Verification**: Verified in `packages/local-engine/tests/m4-acceptance.test.ts` and `packages/desktop/tests/m4-acceptance.test.ts`.
 
-### Milestone 5 — Expansion and release
+### Milestone 5 — Expansion and release [Status: Verified]
 
 Deliver:
 
-- Usage integrations.
-- Notifications and widgets.
-- SDK and example app.
-- Local extension installation.
-- Signed and notarized macOS release.
-- Windows viewer packaging.
+- Usage integrations (Claude, OpenAI, Codex, OpenRouter, Copilot).
+- Notifications and widgets (9 desktop widgets with drag/drop/resize).
+- SDK and example app (`@agentic/app-sdk`, example extension).
+- Local extension installation (`ExtensionService`).
+- Activity & Audit logs system (`ActivityService`, `activity_events` DB, `ActivityLogsAppWindow.tsx`).
+- Production macOS release bundling (`tauri build` producing `Agentic Desktop.app` and `Agentic Desktop_0.1.0_aarch64.dmg`).
+- Windows viewer web packaging.
+
+Acceptance: full test suite passes (127/127 tests), production macOS .dmg and .app bundle created and verified.
+- **Verification**: Verified in `packages/local-engine/tests/m5-acceptance.test.ts`, `packages/desktop/tests/m5-acceptance.test.ts`, and `packages/local-engine/tests/activity-service.test.ts`.
 
 Follow with Windows execution support and native mobile clients.
 

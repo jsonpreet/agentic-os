@@ -1,0 +1,19 @@
+{
+  "name": "@agentic/app-sdk",
+  "version": "0.1.0",
+  "description": "Agentic Desktop extension SDK",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@agentic/shared-contracts": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.3",
+    "vitest": "^2.1.8"
+  }
+}

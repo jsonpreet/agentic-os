@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Hello Widget</title>
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        margin: 0;
+        padding: 12px;
+        background: rgba(20, 20, 24, 0.9);
+        color: #f4f4f5;
+      }
+      button {
+        margin-top: 8px;
+        padding: 6px 10px;
+        border-radius: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: rgba(255, 255, 255, 0.06);
+        color: inherit;
+        cursor: pointer;
+      }
+    </style>
+    <script src="widget-runtime.js"></script>
+  </head>
+  <body>
+    <h1 id="title">Hello Widget</h1>
+    <p id="status">Connecting to Agentic SDK…</p>
+    <p id="count">Opens: 0</p>
+    <button id="notify" type="button">Send test notification</button>
+    <button id="launch" type="button">Launch agent task</button>
+    <p id="launch-status"></p>
+    <script>
+      async function boot() {
+        try {
+          const context = await window.agentic.getContext();
+          document.getElementById('title').textContent = context.name;
+          const key = 'open-count';
+          const previous = Number(await window.agentic.storage.get(key)) || 0;
+          const next = previous + 1;
+          await window.agentic.storage.set(key, String(next));
+          document.getElementById('count').textContent = 'Opens: ' + next;
+          document.getElementById('status').textContent =
+            'SDK ' + context.sdkVersion + ' · permissions: ' + context.permissions.join(', ');
+          document.getElementById('notify').addEventListener('click', async () => {
+            await window.agentic.notifications.show(
+              context.name,
+              'Hello from the sandboxed extension widget.'
+            );
+          });
+          document.getElementById('launch').addEventListener('click', async () => {
+            const result = await window.agentic.agents.launchTask(
+              'Say hello from the Hello Widget extension.'
+            );
+            document.getElementById('launch-status').textContent =
+              'Launched: ' + (result.agentName || result.action);
+          });
+        } catch (error) {
+          document.getElementById('status').textContent = error.message || 'SDK failed to initialize.';
+        }
+      }
+      boot();
+    </script>
+  </body>
+</html>

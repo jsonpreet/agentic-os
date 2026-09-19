@@ -1,7 +1,10 @@
 node_modules
 dist
+dist-electron
+dist-viewer
 build
 out
+packages/desktop/src-tauri/target
 .DS_Store
 *.log
 .agentic

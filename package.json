@@ -6,7 +6,11 @@
   "scripts": {
     "build": "pnpm --filter @agentic/shared-contracts build && pnpm --filter @agentic/local-engine build && pnpm --filter @agentic/desktop build",
     "test": "pnpm -r run test",
-    "dev": "pnpm --filter @agentic/desktop dev",
+    "typecheck": "pnpm -r run typecheck",
+    "dev": "pnpm --filter @agentic/shared-contracts build && pnpm --filter @agentic/local-engine build && pnpm --filter @agentic/desktop dev",
+    "dev:web": "pnpm --filter @agentic/shared-contracts build && pnpm --filter @agentic/local-engine build && pnpm --filter @agentic/desktop dev:web",
+    "relay:dev": "pnpm --filter @agentic/shared-contracts build && pnpm --filter @agentic/local-engine build && pnpm --filter @agentic/local-engine relay",
+    "build:viewer": "pnpm --filter @agentic/shared-contracts build && pnpm --filter @agentic/desktop build:viewer",
     "clean": "rm -rf node_modules packages/*/node_modules packages/*/dist",
     "postinstall": "chmod +x node_modules/.pnpm/node-pty*/node_modules/node-pty/prebuilds/*/spawn-helper 2>/dev/null || true"
   },
